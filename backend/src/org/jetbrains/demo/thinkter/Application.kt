@@ -1,17 +1,19 @@
 package org.jetbrains.demo.thinkter
 
-import com.google.gson.*
-import org.jetbrains.demo.thinkter.dao.*
-import org.jetbrains.demo.thinkter.model.*
-import org.jetbrains.ktor.application.*
-import org.jetbrains.ktor.content.*
-import org.jetbrains.ktor.features.*
-import org.jetbrains.ktor.http.*
-import org.jetbrains.ktor.locations.*
-import org.jetbrains.ktor.logging.*
-import org.jetbrains.ktor.routing.*
-import org.jetbrains.ktor.sessions.*
-import org.jetbrains.ktor.transform.*
+import io.ktor.application.Application
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.features.*
+import io.ktor.gson.GsonConverter
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.locations.Locations
+import io.ktor.response.respond
+import io.ktor.routing.Routing
+import io.ktor.sessions.SessionTransportTransformerMessageAuthentication
+import io.ktor.sessions.Sessions
+import io.ktor.sessions.cookie
+import org.jetbrains.demo.thinkter.dao.ThinkterDatabase
 
 data class Session(val userId: String)
 
@@ -21,24 +23,21 @@ fun Application.main() {
     install(DefaultHeaders)
     install(CallLogging)
     install(ConditionalHeaders)
-    install(PartialContentSupport)
+    install(PartialContent)
     install(Compression)
     install(Locations)
     install(StatusPages) {
         exception<NotImplementedError> { call.respond(HttpStatusCode.NotImplemented) }
     }
-
-    withSessions<Session> {
-        withCookieByValue {
-            settings = SessionCookiesSettings(transformers = listOf(SessionCookieTransformerMessageAuthentication(hashKey)))
+    install(Sessions) {
+        cookie<Session>("SESSION") {
+            transform(SessionTransportTransformerMessageAuthentication(hashKey))
         }
     }
-
-    transform.register<RpcData> {
-        TextContent(Gson().toJson(it), ContentType.Application.Json)
+    install(ContentNegotiation) {
+        register(ContentType.Application.Json, GsonConverter())
     }
-
-    routing {
+    install(Routing) {
         index(storage)
         postThought(storage, ::hash)
         delete(storage, ::hash)

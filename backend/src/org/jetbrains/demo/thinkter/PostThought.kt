@@ -1,16 +1,20 @@
 package org.jetbrains.demo.thinkter
 
-import org.jetbrains.demo.thinkter.dao.*
-import org.jetbrains.demo.thinkter.model.*
-import org.jetbrains.ktor.application.*
-import org.jetbrains.ktor.http.*
-import org.jetbrains.ktor.locations.*
-import org.jetbrains.ktor.routing.*
-import org.jetbrains.ktor.sessions.*
+import io.ktor.application.call
+import io.ktor.http.HttpStatusCode
+import io.ktor.locations.get
+import io.ktor.locations.post
+import io.ktor.response.respond
+import io.ktor.routing.Route
+import io.ktor.sessions.get
+import io.ktor.sessions.sessions
+import org.jetbrains.demo.thinkter.dao.ThinkterStorage
+import org.jetbrains.demo.thinkter.model.PostThoughtResult
+import org.jetbrains.demo.thinkter.model.PostThoughtToken
 
 fun Route.postThought(dao: ThinkterStorage, hashFunction: (String) -> String) {
     get<PostThought> {
-        val user = call.sessionOrNull<Session>()?.let { dao.user(it.userId) }
+        val user = call.sessions.get<Session>()?.let { dao.user(it.userId) }
 
         if (user == null) {
             call.respond(HttpStatusCode.Forbidden)
@@ -21,7 +25,7 @@ fun Route.postThought(dao: ThinkterStorage, hashFunction: (String) -> String) {
         }
     }
     post<PostThought> {
-        val user = call.sessionOrNull<Session>()?.let { dao.user(it.userId) }
+        val user = call.sessions.get<Session>()?.let { dao.user(it.userId) }
         if (user == null || !call.verifyCode(it.date, user, it.code, hashFunction)) {
             call.respond(HttpStatusCode.Forbidden)
         } else {
