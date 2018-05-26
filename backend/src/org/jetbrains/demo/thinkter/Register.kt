@@ -1,19 +1,23 @@
 package org.jetbrains.demo.thinkter
 
-import org.jetbrains.demo.thinkter.dao.*
-import org.jetbrains.demo.thinkter.model.*
-import org.jetbrains.ktor.application.*
-import org.jetbrains.ktor.http.*
-import org.jetbrains.ktor.locations.*
-import org.jetbrains.ktor.routing.*
-import org.jetbrains.ktor.sessions.*
-import org.jetbrains.ktor.util.*
+import io.ktor.application.application
+import io.ktor.application.call
+import io.ktor.http.HttpStatusCode
+import io.ktor.locations.get
+import io.ktor.locations.post
+import io.ktor.response.respond
+import io.ktor.routing.Route
+import io.ktor.sessions.get
+import io.ktor.sessions.sessions
+import io.ktor.sessions.set
+import org.jetbrains.demo.thinkter.dao.ThinkterStorage
+import org.jetbrains.demo.thinkter.model.LoginResponse
+import org.jetbrains.demo.thinkter.model.User
 
 fun Route.register(dao: ThinkterStorage, hashFunction: (String) -> String) {
     post<Register> { form ->
-        val vm = call.request.content.get<ValuesMap>()
 
-        val user = call.sessionOrNull<Session>()?.let { dao.user(it.userId) }
+        val user = call.sessions.get<Session>()?.let { dao.user(it.userId) }
         if (user != null) {
             call.redirect(LoginResponse(user))
         } else {
@@ -42,7 +46,8 @@ fun Route.register(dao: ThinkterStorage, hashFunction: (String) -> String) {
                     }
                 }
 
-                call.session(Session(newUser.userId))
+                //call.session(Session(newUser.userId))
+                call.sessions.set(Session(newUser.userId))
                 call.respond(LoginResponse(newUser))
             }
         }
